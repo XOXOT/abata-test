@@ -20,7 +20,7 @@ jobs:
         workload_identity_provider: '**projects/452492517379/locations/global/workloadIdentityPools/abata-p-service-wip/providers/abata-p-service-wip-github-abata**'
         service_account: 'gitaction@abata-test-384402.iam.gserviceaccount.com'
 
-    - name: 'Set up Cloud SDK'
+    - name: 'Set up Cloud SDK-1'
       uses: 'google-github-actions/setup-gcloud@v0'
 
     - name: 'Use gcloud CLI'
