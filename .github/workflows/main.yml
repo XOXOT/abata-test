@@ -3,7 +3,7 @@ name: git action test
 on:
   push:
     branches:
-    - develop
+    - main
 
 jobs:
   workload-identity-connection:
@@ -17,7 +17,7 @@ jobs:
     - id: 'auth'
       uses: 'google-github-actions/auth@v0'
       with:
-        workload_identity_provider: '**projects/452492517379/locations/global/workloadIdentityPools/abata-p-service-wip/providers/{워크로드 아이덴티티 공급업체 id}**'
+        workload_identity_provider: '**projects/452492517379/locations/global/workloadIdentityPools/abata-p-service-wip/providers/abata-p-service-wip-github-abata**'
         service_account: 'gitaction@abata-test-384402.iam.gserviceaccount.com'
 
     - name: 'Set up Cloud SDK'
