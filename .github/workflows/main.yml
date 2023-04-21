@@ -1,85 +1,27 @@
-name: Build
+name: git action test
 
 on:
   push:
     branches:
-      - 'keyless-patch'
-    tags:
-      - v*
+    - develop
 
 jobs:
-  build:
-    runs-on: [ code-default ]
+  workload-identity-connection:
+    runs-on: ubuntu-latest
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
 
-    # Set reasonable timeout value.
-    timeout-minutes: 120
-
-    env:
-      HOSTNAME: asia.gcr.io
-      PROJECT_ID_PROD: abata-service
-      IMAGE: abata-portal-be
-      ART_PREFIX: abata-docker-local.bart.sec.samsung.net
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # 1. Build
-      - name: Checkout
-        uses: code-actions/checkout@v2
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        workload_identity_provider: '**projects/452492517379/locations/global/workloadIdentityPools/abata-p-service-wip/providers/{워크로드 아이덴티티 공급업체 id}**'
+        service_account: 'gitaction@abata-test-384402.iam.gserviceaccount.com'
 
-      - name: Set ENV value
-        run: |
-          mkdir -p ./build_info
-          echo ${{ github.sha }} | cut -c 1-7 > ./build_info/commit_hash
-          echo "COMMIT_HASH=$(cat ./build_info/commit_hash)" >> $GITHUB_ENV
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-      - name: set TAG value
-        run: |
-          if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
-            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          fi
-        shell: bash
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v0'
 
-      - name: Set VERSION value
-        run: |
-          if [ -z "$TAG" ]
-          then
-            VERSION=dev-${COMMIT_HASH}
-          else
-            VERSION=${TAG}
-          fi
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-      - name: Build ABATA portal BE docker image
-        run: |
-          docker build -t ${{ env.HOSTNAME }}/${{ env.PROJECT_ID_PROD }}/${{ env.IMAGE }}:dev -f ./.github/Dockerfile .
-          docker tag ${{ env.HOSTNAME }}/${{ env.PROJECT_ID_PROD }}/${{ env.IMAGE }}:dev ${{ env.HOSTNAME }}/${{ env.PROJECT_ID_PROD }}/${{ env.IMAGE }}:${{ env.VERSION }}
-          docker tag ${{ env.HOSTNAME }}/${{ env.PROJECT_ID_PROD }}/${{ env.IMAGE }}:dev ${{ env.ART_PREFIX }}/${{ env.IMAGE }}:${{ env.VERSION }}
-      #2. Deploy (To Google Container Registry)
-      - name: Set up Cloud SDK
-        uses: code-actions/google-github-actions-setup-gcloud@v0.5.1
-
-      - name: Authenticate to Google Cloud
-        uses: CODE-Actions/cloud-keyless-auth@main
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_PRD }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_PRD }}
-          audience: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_AUDIENCE }}
-          access_token_lifetime: '600s'
-
-      - name: Docker auth
-        run: gcloud auth configure-docker
-
-      - name: Push to GCR
-        run: |
-          docker image push ${{ env.HOSTNAME }}/${{ env.PROJECT_ID_PROD }}/${{ env.IMAGE }}:dev
-          docker image push ${{ env.HOSTNAME }}/${{ env.PROJECT_ID_PROD }}/${{ env.IMAGE }}:${{ env.VERSION }}
-      - name: Login BART artifactory
-        uses: code-actions/docker-login-action@v1
-        with:
-          token_format: 'access_token'
-          registry: ${{ env.ART_PREFIX }}
-          username: ${{ secrets.ART_USER }}
-          password: ${{ secrets.ART_PASSWORD }}
-
-      - name: Push to BART
-        run: |
-          docker push ${{ env.ART_PREFIX }}/${{ env.IMAGE }}:${{ env.VERSION }}
+    - name: 'Use gcloud CLI'
+      run: 'gcloud info'
